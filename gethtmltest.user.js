@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Simple Draggable Get HTML Button
+// @name         Draggable Get HTML Button with iOS Support
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  シンプルなドラッグ可能なGet HTMLボタン
+// @version      1.1
+// @description  ドラッグ可能でiOSのタッチ操作にも対応したGet HTMLボタン
 // @match        *://*/*
 // @grant        none
 // ==/UserScript==
@@ -27,6 +27,7 @@
   let dragging = false;
   let offsetX, offsetY;
 
+  // マウス用ドラッグ開始
   btn.addEventListener('mousedown', e => {
     dragging = true;
     offsetX = e.clientX - btn.offsetLeft;
@@ -35,19 +36,45 @@
     e.preventDefault();
   });
 
-  document.addEventListener('mouseup', () => {
-    if (dragging) {
-      dragging = false;
-      btn.style.cursor = 'grab';
-      // 位置保存
-      localStorage.setItem('btnPos', JSON.stringify({left: btn.style.left, top: btn.style.top}));
-    }
-  });
-
+  // マウス移動
   document.addEventListener('mousemove', e => {
     if (!dragging) return;
     btn.style.left = (e.clientX - offsetX) + 'px';
     btn.style.top = (e.clientY - offsetY) + 'px';
+  });
+
+  // マウス終了
+  document.addEventListener('mouseup', () => {
+    if (dragging) {
+      dragging = false;
+      btn.style.cursor = 'grab';
+      localStorage.setItem('btnPos', JSON.stringify({left: btn.style.left, top: btn.style.top}));
+    }
+  });
+
+  // タッチ用ドラッグ開始
+  btn.addEventListener('touchstart', e => {
+    dragging = true;
+    const touch = e.touches[0];
+    offsetX = touch.clientX - btn.offsetLeft;
+    offsetY = touch.clientY - btn.offsetTop;
+    e.preventDefault();
+  });
+
+  // タッチ移動
+  document.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const touch = e.touches[0];
+    btn.style.left = (touch.clientX - offsetX) + 'px';
+    btn.style.top = (touch.clientY - offsetY) + 'px';
+  }, { passive: false });
+
+  // タッチ終了
+  document.addEventListener('touchend', () => {
+    if (dragging) {
+      dragging = false;
+      localStorage.setItem('btnPos', JSON.stringify({left: btn.style.left, top: btn.style.top}));
+    }
   });
 
   // 位置復元
@@ -58,9 +85,9 @@
     if (pos.top) btn.style.top = pos.top;
   }
 
-  // ボタン押したらHTML取得してダウンロード
-  btn.addEventListener('click', () => {
-    if (dragging) return; // ドラッグ中のクリックを防止
+  // ボタンクリック（ドラッグ中は無効化）
+  btn.addEventListener('click', e => {
+    if (dragging) return;
     const html = document.documentElement.outerHTML;
     const blob = new Blob([html], {type: 'text/html'});
     const a = document.createElement('a');
